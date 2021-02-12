@@ -10,9 +10,8 @@ comma:.asciiz ","
 searchMessage:.asciiz "\nPress 1 for Binary Search\nPress 0 to Exit the Program\n"
 valMsg:  .asciiz "Enter the value you search for : \n"
 val_int:     .word 0
-val_char:.byte 
 notfound:.asciiz "the value doesn't exist in the array !! \n"
-posMsg:  .asciiz "This value exist in the array and its position is "
+posMsg:  .asciiz "\n This value exist in the array and its position is "
 .text
 main:
 
@@ -135,7 +134,7 @@ beq $s0,2,internal_int_fun2   #if input =2 quicksort will be applied
     #Choose the proper datatype of Searching Function According to user choice
      search:
      lw   $s4 , choice_input     #load value of choice_input from memory
-     beq  $s4,1,search_char
+
      beq  $s4,2,search_int
      
      search_int:
@@ -150,40 +149,19 @@ beq $s0,2,internal_int_fun2   #if input =2 quicksort will be applied
 
     # store the value in the val variable
     sw $v0, val_int
-    
+   
     ################################################
     ## put $s0 = start , $s1 = middle , $s2 = end ##
     ################################################
     
       li $s0, 0
       move $s2, $t0  
-      addi $s2,$s2,-1
+      
       jal BinarySearch_int
       
+    
       j final                  # branch to end of program
       
-    search_char:
-    # print value message
-    li $v0, 4
-    la $a0, valMsg
-    syscall
-
-    # read the value from the user
-    li $v0, 12
-    syscall
-
-    # store the value in the val variable
-    sw $v0, val_char
-    ################################################
-    ## put $s0 = start , $s1 = middle , $s2 = end ##
-    ################################################
-    
-     li $s0, 0
-     move $s2, $t0  
-     addi $s2,$s2,-1
-
-      jal BinarySearch_char
-      j final
        
      final:
      #End of program
@@ -578,113 +556,70 @@ exit_char :
 	syscall
 	addi $t3 , $zero , 0 
 	jr $ra                       
+	                  
 BinarySearch_int:
-    # middle = (start + end ) / 2
-    add $t4, $s0, $s2                   # $t4 = start + end
-    sra  $s1, $t4, 1                    # $s1 = $t4 / 2
-                     
-    move $s1,$t4
     addi $sp, $sp, -4
     sw $ra, 0($sp)
-
+    # middle = (start + end ) / 2
+    
+    
+loooop:
     # base case
-    ble  $s0,$s2 returnNegative1_int       # if (end <= start) 
-
-    sll $s3,$s1,2
+    ble  $s2,$s0 returnNegative1_int       # if (end <= start) 
+    add  $t4, $s0, $s2                   # $t4 = start + end
+    sra  $t4, $t4, 1                    # $s1 = $t4 / 2
+                     
+    move $s1,$t4
+    sll $s3,$t4,2
     add $s3,$s3,$a1
 
-    lw  $t5, ($s3)                           # $t5 = arr[middle]
-    lw  $t2, val_int                         # $t2 = val
+    lw  $t5, 0($s3)                           # $t5 = arr[middle]
+    lw  $t2, val_int                          # $t2 = val_int
 
     beq $t5, $t2, returnMiddle_int          # if (arr[middle] == val)
     bgt $t2, $t5, returnLastPart_int        # if (val > arr[middle])  
     blt $t2, $t5, returnFirstPart_int       # if (val < arr[middle])
 
-
+j loooop
 
     returnNegative1_int:
-       li $v0, -1
+         li $v1, -1
+         li $v0,4
+         la $a0,notfound
+         syscall
+         
        j Exit_int       
     returnMiddle_int:
-       move $v0, $s1                    # return middle
-      j Exit_int   
+      move $v1, $s1                    # return middle
+       li $v0,4
+       la $a0,posMsg
+       syscall
+       
+       li $v0,1
+       move $a0,$v1
+       syscall
+       
+       j Exit_int   
 
     returnFirstPart_int:
 
            move $t3, $s1                # temp = middle     
-           addi $t3, $t3, -1            # temp --
+           #addi $t3, $t3, -1            # temp --
+           
            move $s2, $t3                # end = temp
-           jal BinarySearch_int
-         j Exit_int
+          j loooop
 
     returnLastPart_int:                             
        move $t3, $s1                    # temp = middle
        addi $t3, $t3, 1                 # temp++
        move $s0, $t3                    # start = temp
-       jal BinarySearch_int
-      j Exit_int   
+       j loooop
 
 Exit_int:   
-    li $v1,-1
+   
     lw $ra, 0($sp)
-   addi $sp, $sp, 4
-    jr $ra
-        
-          
-BinarySearch_char:
-
-    # middle = (start + end ) / 2
-    add  $t4, $s0, $s2                   # $t4 = start + end
-    sra  $s1, $t4, 1                    # $s1 = $t0 / 2
-
-    # save $ra in the stack
-    addi $sp, $sp, -4
-    sw $ra, 0($sp)
-
-    # base case
-    ble $s2, $s0, returnNegative1_char       # if (end <= start) 
-    move $s3,$s1
-    add $s3,$s3,$a1
-
-    lb $t5, ($s3)                            # $t5= arr[middle]
-    
-    lb  $t2, val_char                        # $t2 = val
-    beq $t5, $t2, returnMiddle_char          # if (arr[middle] == val)
-
-    blt $t2, $t5, returnFirstPart_char       # if (val < arr[middle])
-
-    bgt $t2, $t5, returnLastPart_char        # if (val > arr[middle])  
-
-    returnNegative1_char:
-       li $v0, -1
-       j Exit_char       
-    returnMiddle_char:
-       move $v0, $s1                    # return middle
-  
-       j Exit_char   
-
-    returnFirstPart_char:
-           move $t3, $s1                # temp = middle     
-           addi $t3, $t3, -1            # temp --
-           move $s2, $t3                # end = temp
-           jal BinarySearch_char
-       j Exit_char
-
-    returnLastPart_char:                             
-       move $t3, $s1                    # temp = middle
-       addi $t3, $t3, 1                 # temp++
-       move $s0, $t3                    # start = temp
-       jal BinarySearch_char
-       j Exit_char  
-
-Exit_char:   
-    lw $ra, 0($sp)
-   addi $sp, $sp, 4
-    jr $ra
-            
-              
-                
-                  
+    addi $sp, $sp, 4
+    jr $ra        
                     
                         
          
